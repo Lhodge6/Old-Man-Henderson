@@ -1,3 +1,0 @@
-This is a test to see if I can commit a file!!!
-
-Now I am testing to see if I can edit this file from NetBeans using the built in functionality
