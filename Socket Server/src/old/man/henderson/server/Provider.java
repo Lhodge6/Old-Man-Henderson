@@ -16,19 +16,14 @@ public class Provider{
 	
 	void run()
 	{
-		try{
-			//connecting to the database
-			Class.forName(driver).newInstance();
-			conn = DriverManager.getConnection(url);
-			System.out.println("Connected to the database");
-			
+		try{			
 			//1. creating a server socket
 			providerSocket = new ServerSocket(2004, 10);
 			//new Socket(new InetAddress )
 			//2. Wait for connection
-			System.out.println("Waiting for connection");
+			System.out.println("Server> Waiting for connection");
 			connection = providerSocket.accept();
-			System.out.println("Connection received from " + connection.getInetAddress().getHostName());
+			System.out.println("Server> Connection received from " + connection.getInetAddress().getHostName());
 			
 			//3. get Input and Output streams
 			out = new ObjectOutputStream(connection.getOutputStream());
@@ -42,14 +37,30 @@ public class Provider{
 					message = (String)in.readObject();
 					System.out.println("client> " + message);
 					
-					Statement st = conn.createStatement();					
-					if(message.contains("select"))
-						sendMessage(constructResponse(st.executeQuery(message)));//Executing the message against the database, formating the response and returning it all in one line :P
-					else
-						sendMessage("" + st.executeUpdate(message));						
-						
+										
+					if(message.contains("select")){
+						//connecting to the database
+						Class.forName(driver).newInstance();
+						conn = DriverManager.getConnection(url);
+						System.out.println("Connected to the database");
+						Statement st = conn.createStatement();
+						ResultSet rs = st.executeQuery(message);
+						sendMessage(constructResponse(rs));//Executing the message against the database, formating the response and returning it all in one line :P
+						sendObject(rs);
+						st.close();
+						conn.close();
+					}else{
+						//connecting to the database
+						Class.forName(driver).newInstance();
+						conn = DriverManager.getConnection(url);
+						System.out.println("Connected to the database");
+						Statement st = conn.createStatement();
+						sendMessage("" + st.executeUpdate(message));
+						st.close();
+						conn.close();
+					}	
 					//closing the statement to free up the database if some one else needs to do something				
-					st.close();
+					
 					//basic conditional close, will just reboot the server 
 					if(message.equals("bye"))
 						sendMessage("bye");
@@ -65,15 +76,6 @@ public class Provider{
 		}
 		catch(IOException ioException){
 			ioException.printStackTrace();
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -101,6 +103,18 @@ public class Provider{
 			ioException.printStackTrace();
 		}
 	}
+	void sendObject(Object o)
+	{
+		try{
+			out.writeObject(o);
+			out.flush();
+			System.out.println("server>" + o.toString());
+		}
+		catch(IOException ioException){
+			ioException.printStackTrace();
+		}
+	}
+	
 	String constructResponse(ResultSet rs){
 		String response = "\n";
 		
