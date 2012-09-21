@@ -1,6 +1,8 @@
 package old.man.henderson.client;
 import java.io.*;
 import java.net.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Scanner;
 public class Requester{
 	Socket requestSocket;
@@ -13,17 +15,20 @@ public class Requester{
 	{
 		try{
 			//1. creating a socket to connect to the server
-			requestSocket = new Socket("10.128.165.61", 2004);
+			requestSocket = new Socket("5.4.96.108", 2004);
 			System.out.println("Connected to localhost in port 2004");
+			
 			//2. get Input and Output streams
 			out = new ObjectOutputStream(requestSocket.getOutputStream());
 			out.flush();
 			in = new ObjectInputStream(requestSocket.getInputStream());
+			
 			//3: Communicating with the server
 			do{
 				try{
 					message = (String)in.readObject();
 					System.out.println("server>" + message);
+					
 					//this takes sql queries, will crash if not absolutely perfect, should reboot...
 					sendMessage(sc.nextLine());
 				}
@@ -60,7 +65,7 @@ public class Requester{
 		catch(IOException ioException){
 			ioException.printStackTrace();
 		}
-	}
+	}	
 	public static void main(String args[])
 	{
 		Requester client = new Requester();

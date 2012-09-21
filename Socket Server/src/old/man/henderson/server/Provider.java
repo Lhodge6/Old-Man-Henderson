@@ -11,7 +11,7 @@ public class Provider{
 	Provider(){}
 	
 	Connection conn = null;
-	String url = "jdbc:derby:C:\\User\\Account"; //connection url, will be different on a different machine
+	String url = "jdbc:derby:C:\\Users\\Account"; //connection url, will be different on a different machine
 	String driver = "org.apache.derby.jdbc.EmbeddedDriver"; // derby drivers, this will be different if we use MySQL or somthing else
 	
 	void run()
@@ -19,7 +19,7 @@ public class Provider{
 		try{			
 			//1. creating a server socket
 			providerSocket = new ServerSocket(2004, 10);
-			//new Socket(new InetAddress )
+			
 			//2. Wait for connection
 			System.out.println("Server> Waiting for connection");
 			connection = providerSocket.accept();
@@ -36,30 +36,33 @@ public class Provider{
 				try{
 					message = (String)in.readObject();
 					System.out.println("client> " + message);
-					
+					Class.forName(driver).newInstance();
 										
 					if(message.contains("select")){
-						//connecting to the database
-						Class.forName(driver).newInstance();
+						//connecting to the database						
 						conn = DriverManager.getConnection(url);
 						System.out.println("Connected to the database");
+						
 						Statement st = conn.createStatement();
 						ResultSet rs = st.executeQuery(message);
+						
 						sendMessage(constructResponse(rs));//Executing the message against the database, formating the response and returning it all in one line :P
-						sendObject(rs);
+						
+						
 						st.close();
 						conn.close();
 					}else{
 						//connecting to the database
-						Class.forName(driver).newInstance();
 						conn = DriverManager.getConnection(url);
 						System.out.println("Connected to the database");
+						
 						Statement st = conn.createStatement();
 						sendMessage("" + st.executeUpdate(message));
+						
 						st.close();
 						conn.close();
 					}	
-					//closing the statement to free up the database if some one else needs to do something				
+								
 					
 					//basic conditional close, will just reboot the server 
 					if(message.equals("bye"))
@@ -71,14 +74,11 @@ public class Provider{
 				catch(Exception e){
 					sendMessage(e.toString());
 				}
-			}while(!message.equals("bye"));
-			conn.close();
+			}while(true);
+			
 		}
 		catch(IOException ioException){
 			ioException.printStackTrace();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 		finally{
 			//4: Closing connection
