@@ -2,6 +2,7 @@ package old.man.henderson.server;
 import java.io.*;
 import java.net.*;
 import java.sql.*;
+import java.util.Scanner;
 public class Provider{
 	ServerSocket providerSocket;
 	Socket connection = null;
@@ -11,14 +12,17 @@ public class Provider{
 	Provider(){}
 	
 	Connection conn = null;
-	String url = "jdbc:derby:C:\\Users\\Account"; //connection url, will be different on a different machine
+	String url = "jdbc:derby:C:\\Apache\\DataBase;create=True"; //connection url, will be different on a different machine
+	String initFileUrl = "C:\\Apache\\init.sql";
 	String driver = "org.apache.derby.jdbc.EmbeddedDriver"; // derby drivers, this will be different if we use MySQL or somthing else
 	
 	void run()
 	{
-		try{			
+		try{
+			init();
+			
 			//1. creating a server socket
-			providerSocket = new ServerSocket(2004, 10);
+			providerSocket = new ServerSocket(2005, 10);
 			
 			//2. Wait for connection
 			System.out.println("Server> Waiting for connection");
@@ -39,30 +43,27 @@ public class Provider{
 					Class.forName(driver).newInstance();
 										
 					if(message.contains("select")){
-						//connecting to the database						
+						//connecting to the database
+						
 						conn = DriverManager.getConnection(url);
 						System.out.println("Connected to the database");
-						
 						Statement st = conn.createStatement();
-						ResultSet rs = st.executeQuery(message);
-						
-						sendMessage(constructResponse(rs));//Executing the message against the database, formating the response and returning it all in one line :P
-						
+																		
+						sendMessage(ScriptRunner.runScriptWithResult(conn,new StringReader(message)));//Executing the message against the database, formating the response and returning it all in one line :P
 						
 						st.close();
 						conn.close();
 					}else{
-						//connecting to the database
 						conn = DriverManager.getConnection(url);
 						System.out.println("Connected to the database");
-						
 						Statement st = conn.createStatement();
+						
 						sendMessage("" + st.executeUpdate(message));
 						
 						st.close();
 						conn.close();
 					}	
-								
+					//closing the statement to free up the database if some one else needs to do something				
 					
 					//basic conditional close, will just reboot the server 
 					if(message.equals("bye"))
@@ -74,11 +75,23 @@ public class Provider{
 				catch(Exception e){
 					sendMessage(e.toString());
 				}
-			}while(true);
-			
+			}while(!message.equals("bye"));
+			conn.close();
 		}
 		catch(IOException ioException){
 			ioException.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InstantiationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IllegalAccessException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (ClassNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
 		finally{
 			//4: Closing connection
@@ -114,7 +127,20 @@ public class Provider{
 			ioException.printStackTrace();
 		}
 	}
-	
+	void init() throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException, FileNotFoundException, IOException{			
+		String initScript = "";
+		conn = DriverManager.getConnection(url);
+		System.out.println("Connected to the database");
+		Statement st = conn.createStatement();
+		Class.forName(driver).newInstance();
+		
+		ScriptRunner runner = new ScriptRunner(conn,true,false);
+		
+		runner.runScript(new FileReader(initFileUrl));
+		
+		st.close();
+		conn.close();
+	}
 	String constructResponse(ResultSet rs){
 		String response = "\n";
 		
