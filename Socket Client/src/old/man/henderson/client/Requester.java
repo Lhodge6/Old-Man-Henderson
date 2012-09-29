@@ -16,13 +16,25 @@ public class Requester{
 		try{
 			//1. creating a socket to connect to the server
 			requestSocket = new Socket("192.168.1.30", 2005);
-			System.out.println("Connected to localhost in port 2004");
+			System.out.println("Connected to " + requestSocket.getInetAddress().getHostName() + " in port " + requestSocket.getPort());
 			
-			//2. get Input and Output streams
+			//2. get Input stream			
 			out = new ObjectOutputStream(requestSocket.getOutputStream());
 			out.flush();
 			in = new ObjectInputStream(requestSocket.getInputStream());
 			
+			int newPort = Integer.parseInt(in.readObject().toString());
+			System.out.println("New Port number : " + newPort);
+			System.out.println("Connecting...");
+			requestSocket.close();
+			
+			//3. get server port from negotiator
+			requestSocket = new Socket("192.168.1.30", newPort);
+			System.out.println("Connected to " + requestSocket.getInetAddress().getHostName() + " in port " + requestSocket.getPort());
+			
+			out = new ObjectOutputStream(requestSocket.getOutputStream());
+			out.flush();
+			in = new ObjectInputStream(requestSocket.getInputStream());
 			//3: Communicating with the server
 			do{
 				try{
@@ -42,6 +54,12 @@ public class Requester{
 		}
 		catch(IOException ioException){
 			ioException.printStackTrace();
+		} catch (NumberFormatException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		finally{
 			//4: Closing connection

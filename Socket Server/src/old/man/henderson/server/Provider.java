@@ -2,28 +2,40 @@ package old.man.henderson.server;
 import java.io.*;
 import java.net.*;
 import java.sql.*;
-import java.util.Scanner;
-public class Provider{
+public class Provider implements Runnable{
 	ServerSocket providerSocket;
+	ServerSocket negotiatorSocket;
 	Socket connection = null;
 	ObjectOutputStream out;
 	ObjectInputStream in;
 	String message;
-	Provider(){}
+	public Provider(ServerSocket negotiatorSocket, Socket connection){
+		this.negotiatorSocket = negotiatorSocket;
+		this.connection = connection;
+	}
 	
 	Connection conn = null;
 	String url = "jdbc:derby:C:\\Apache\\DataBase;create=True"; //connection url, will be different on a different machine
 	String initFileUrl = "C:\\Apache\\init.sql";
 	String driver = "org.apache.derby.jdbc.EmbeddedDriver"; // derby drivers, this will be different if we use MySQL or somthing else
 	
-	void run()
+	public void run()
 	{
 		try{
 			init();
 			
 			//1. creating a server socket
-			providerSocket = new ServerSocket(2005, 10);
+			providerSocket = new ServerSocket(0, 10);
 			
+			out = new ObjectOutputStream(connection.getOutputStream());
+			out.flush();
+			//in = new ObjectInputStream(connection.getInputStream());
+			
+			
+			sendMessage("" + getPort());			
+			System.out.println("negotiator> New port: " +  getPort());
+			negotiatorSocket.close();
+			out.close();
 			//2. Wait for connection
 			System.out.println("Server> Waiting for connection");
 			connection = providerSocket.accept();
@@ -34,6 +46,9 @@ public class Provider{
 			out.flush();
 			in = new ObjectInputStream(connection.getInputStream());
 			sendMessage("Connection successful");
+			
+			
+			
 			
 			//4. The two parts communicate via the input and output streams
 			do{
@@ -68,6 +83,8 @@ public class Provider{
 					//basic conditional close, will just reboot the server 
 					if(message.equals("bye"))
 						sendMessage("bye");
+					
+					Thread.yield();
 				}
 				catch(ClassNotFoundException classnot){
 					System.err.println("Data received in unknown format");
@@ -127,8 +144,7 @@ public class Provider{
 			ioException.printStackTrace();
 		}
 	}
-	void init() throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException, FileNotFoundException, IOException{			
-		String initScript = "";
+	void init() throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException, FileNotFoundException, IOException{
 		conn = DriverManager.getConnection(url);
 		System.out.println("Connected to the database");
 		Statement st = conn.createStatement();
@@ -141,35 +157,8 @@ public class Provider{
 		st.close();
 		conn.close();
 	}
-	String constructResponse(ResultSet rs){
-		String response = "\n";
-		
-		try {
-			int colCount = rs.getMetaData().getColumnCount(); // gets the number of columns so that we know how may to iterate over before we go the the next row
-			
-			//iterates over the coloumn names and adds them to the response
-			for(int i = 1; i <= colCount; i++)
-				response = response + rs.getMetaData().getColumnName(i) + " \t ";			
-			response = response + "\n";
-			
-			//iterates over each column and adds the field data to the response, at the end o the row it iterates the row
-			while(rs.next()){
-				for(int i = 1; i <= colCount; i++)
-					response = response + rs.getString(i) + " \t ";
-				response = response + "\n";
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-				
-		return response;
-	}
-	public static void main(String args[])
-	{
-		Provider server = new Provider();
-		while(true){
-			server.run();
-		}
+	
+	public int getPort(){
+		return providerSocket.getLocalPort();
 	}
 }
