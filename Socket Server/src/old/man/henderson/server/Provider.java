@@ -9,9 +9,11 @@ public class Provider implements Runnable{
 	ObjectOutputStream out;
 	ObjectInputStream in;
 	String message;
-	public Provider(ServerSocket negotiatorSocket, Socket connection){
+	long socketId;
+	public Provider(ServerSocket negotiatorSocket, Socket connection, long id){
 		this.negotiatorSocket = negotiatorSocket;
 		this.connection = connection;
+		this.socketId = id;
 	}
 	
 	Connection conn = null;
@@ -21,9 +23,7 @@ public class Provider implements Runnable{
 	
 	public void run()
 	{
-		try{
-			init();
-			
+		try{						
 			//1. creating a server socket
 			providerSocket = new ServerSocket(0, 10);
 			
@@ -34,12 +34,12 @@ public class Provider implements Runnable{
 			
 			sendMessage("" + getPort());			
 			System.out.println("negotiator> New port: " +  getPort());
-			negotiatorSocket.close();
+			//negotiatorSocket.close();
 			out.close();
 			//2. Wait for connection
-			System.out.println("Server> Waiting for connection");
+			System.out.println("Server " + socketId + "> Waiting for connection");
 			connection = providerSocket.accept();
-			System.out.println("Server> Connection received from " + connection.getInetAddress().getHostName());
+			System.out.println("Server " + socketId + "> Connection received from " + connection.getInetAddress().getHostName());
 			
 			//3. get Input and Output streams
 			out = new ObjectOutputStream(connection.getOutputStream());
@@ -54,7 +54,7 @@ public class Provider implements Runnable{
 			do{
 				try{
 					message = (String)in.readObject();
-					System.out.println("client> " + message);
+					System.out.println("client " + socketId + "> " + message);
 					Class.forName(driver).newInstance();
 										
 					if(message.contains("select")){
@@ -100,15 +100,6 @@ public class Provider implements Runnable{
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (InstantiationException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IllegalAccessException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
 		}
 		finally{
 			//4: Closing connection
@@ -127,7 +118,7 @@ public class Provider implements Runnable{
 		try{
 			out.writeObject(msg);
 			out.flush();
-			System.out.println("server>" + msg);
+			System.out.println("server " + socketId + ">" + msg);
 		}
 		catch(IOException ioException){
 			ioException.printStackTrace();
@@ -138,25 +129,12 @@ public class Provider implements Runnable{
 		try{
 			out.writeObject(o);
 			out.flush();
-			System.out.println("server>" + o.toString());
+			System.out.println("server " + socketId + ">" + o.toString());
 		}
 		catch(IOException ioException){
 			ioException.printStackTrace();
 		}
-	}
-	void init() throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException, FileNotFoundException, IOException{
-		conn = DriverManager.getConnection(url);
-		System.out.println("Connected to the database");
-		Statement st = conn.createStatement();
-		Class.forName(driver).newInstance();
-		
-		ScriptRunner runner = new ScriptRunner(conn,true,false);
-		
-		runner.runScript(new FileReader(initFileUrl));
-		
-		st.close();
-		conn.close();
-	}
+	}	
 	
 	public int getPort(){
 		return providerSocket.getLocalPort();
