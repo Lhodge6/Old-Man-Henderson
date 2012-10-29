@@ -15,7 +15,7 @@ public class Requester implements Runnable{
 	{
 		try{
 			//1. creating a socket to connect to the server
-			requestSocket = new Socket("192.168.1.1", 2008);
+			requestSocket = new Socket("192.168.1.30", 2008);
 			System.out.println("Connected to " + requestSocket.getInetAddress().getHostName() + " in port " + requestSocket.getPort());
 			
 			boolean exception = false;
@@ -41,7 +41,7 @@ public class Requester implements Runnable{
 					//3: Communicating with the server
 					do{
 						try{
-							while(true){
+							//while(true){
 								message = (String)in.readObject();
 								System.out.println("server>" + message);
 								
@@ -50,7 +50,7 @@ public class Requester implements Runnable{
 							
 								sendMessage("select * from USERS;");
 								Thread.sleep((long) (Math.random() * 5000l));
-							}
+							//}
 						}
 						catch(ClassNotFoundException classNot){
 							System.err.println("data received in unknown format");

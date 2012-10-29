@@ -318,6 +318,87 @@ public class ScriptRunner {
 		return response;
 	}
     
+    public static String runScriptWithOutResult(Connection conn, Reader reader) throws IOException,
+    SQLException {
+		StringBuffer command = null;
+		ResultSet rs = null;
+		String response = "";
+		try {
+		    LineNumberReader lineReader = new LineNumberReader(reader);
+		    String line = null;
+		    while ((line = lineReader.readLine()) != null) {
+		        if (command == null) {
+		            command = new StringBuffer();
+		        }
+		        String trimmedLine = line.trim();
+		        if (trimmedLine.startsWith("--")) {
+		            println(trimmedLine);
+		        } else if (trimmedLine.length() < 1
+		                || trimmedLine.startsWith("//")) {
+		            // Do nothing
+		        } else if (trimmedLine.length() < 1
+		                || trimmedLine.startsWith("--")) {
+		            // Do nothing
+		        } else if (!fullLineDelimiter
+		                && trimmedLine.endsWith(getDelimiter())
+		                || fullLineDelimiter
+		                && trimmedLine.equals(getDelimiter())) {
+		            command.append(line.substring(0, line
+		                    .lastIndexOf(getDelimiter())));
+		            command.append(" ");
+		            Statement statement = conn.createStatement();
+		
+		            println(command);
+		
+		            boolean hasResults = false;
+		            if (stopOnError) {
+		                hasResults = statement.execute(command.toString());
+		            } else {
+		                try {
+		                    statement.execute(command.toString());
+		                } catch (SQLException e) {
+		                    e.fillInStackTrace();
+		                    printlnError("Error executing: " + command);
+		                    printlnError(e);
+		                }
+		            }
+		
+		            if (autoCommit && !conn.getAutoCommit()) {
+		                conn.commit();
+		            }
+				            		
+		            command = null;
+		            try {
+		                statement.close();
+		            } catch (Exception e) {
+		                // Ignore to workaround a bug in Jakarta DBCP
+		            }
+		            Thread.yield();
+		        } else {
+		            command.append(line);
+		            command.append(" ");
+		        }
+		    }
+		    if (!autoCommit) {
+		        conn.commit();
+		    }
+		} catch (SQLException e) {
+		    e.fillInStackTrace();
+		    printlnError("Error executing: " + command);
+		    printlnError(e);
+		    throw e;
+		} catch (IOException e) {
+		    e.fillInStackTrace();
+		    printlnError("Error executing: " + command);
+		    printlnError(e);
+		    throw e;
+		} finally {
+		    conn.rollback();
+		    flush();
+		}
+		return response;
+	}
+    
     static String constructResponse(ResultSet rs){
 		String response = "\n";
 		

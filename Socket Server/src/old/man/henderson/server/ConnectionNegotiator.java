@@ -4,6 +4,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.StringReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.Connection;
@@ -22,6 +23,8 @@ public class ConnectionNegotiator{
 	static String url = "jdbc:derby:C:\\Apache\\DataBase;create=True"; //connection url, will be different on a different machine
 	static String initFileUrl = "C:\\Apache\\init.sql";
 	static String driver = "org.apache.derby.jdbc.EmbeddedDriver"; // derby drivers, this will be different if we use MySQL or somthing else
+	static int startPort = 5000;
+	static int endPort = 6000;
 	
 	
 	
@@ -29,27 +32,9 @@ public class ConnectionNegotiator{
 	{
 		ServerSocket negotiatorSocket;
 		Socket connection = null;
-		try {
-			init();
-		} catch (FileNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (InstantiationException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IllegalAccessException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (SQLException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		
+		init();
+				
 		long i = 0;
 		while(true){
 			try {
@@ -63,8 +48,9 @@ public class ConnectionNegotiator{
 				
 				Thread temp = new Thread(new Provider(negotiatorSocket,connection,i++));
 				Thread.sleep(500L);
+				Thread.yield();
 				temp.start();
-				
+				Thread.yield();				
 				System.out.println("negotiator> closing socket");
 				negotiatorSocket.close();
 			} catch (IOException e) {
@@ -88,8 +74,10 @@ public class ConnectionNegotiator{
 			ioException.printStackTrace();
 		}
 	}
-	static void init() throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException, FileNotFoundException, IOException{
-		conn = DriverManager.getConnection(url);
+	static void init() {
+		try {
+			conn = DriverManager.getConnection(url);
+		
 		System.out.println("Connected to the database");
 		Statement st = conn.createStatement();
 		Class.forName(driver).newInstance();
@@ -97,8 +85,33 @@ public class ConnectionNegotiator{
 		ScriptRunner runner = new ScriptRunner(conn,true,false);
 		
 		runner.runScript(new FileReader(initFileUrl));
+		for(int i = startPort; i < endPort; i++)
+			runner.runScript(new StringReader("INSERT into PORTLIST (PORT) VALUES (" + i +");"));
 		
 		st.close();
 		conn.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
+	static void cleanDatabase() {
+		
+	}
+	
 }

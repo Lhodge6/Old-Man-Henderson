@@ -23,16 +23,21 @@ public class Provider implements Runnable{
 	
 	public void run()
 	{
+		System.out.println("ENTERING PROVDIER");
+		
 		try{						
+			System.out.println("check 1");
 			//1. creating a server socket
-			providerSocket = new ServerSocket(0, 10);
-			
+			providerSocket = new ServerSocket(getNewPort(), 10);
+			System.out.println("check 2");
 			out = new ObjectOutputStream(connection.getOutputStream());
+			System.out.println("check 3");
 			out.flush();
+			System.out.println("check 4");
 			//in = new ObjectInputStream(connection.getInputStream());
-			
-			
+						
 			sendMessage("" + getPort());			
+			System.out.println("check 5");
 			System.out.println("negotiator> New port: " +  getPort());
 			//negotiatorSocket.close();
 			out.close();
@@ -79,7 +84,7 @@ public class Provider implements Runnable{
 						conn.close();
 					}	
 					//closing the statement to free up the database if some one else needs to do something				
-					
+					Thread.yield();
 					//basic conditional close, will just reboot the server 
 					if(message.equals("bye"))
 						sendMessage("bye");
@@ -90,23 +95,27 @@ public class Provider implements Runnable{
 					System.err.println("Data received in unknown format");
 				}
 				catch(Exception e){
+					System.err.println(e);
 					sendMessage(e.toString());
 				}
 			}while(!message.equals("bye"));
 			conn.close();
 		}
 		catch(IOException ioException){
+			System.err.println(ioException);
 			ioException.printStackTrace();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
+			System.err.println(e);
 			e.printStackTrace();
 		}
 		finally{
 			//4: Closing connection
-			try{
+			try{				
 				in.close();
 				out.close();
 				providerSocket.close();
+				returnPort(getPort());
 			}
 			catch(IOException ioException){
 				ioException.printStackTrace();
@@ -118,7 +127,7 @@ public class Provider implements Runnable{
 		try{
 			out.writeObject(msg);
 			out.flush();
-			System.out.println("server " + socketId + ">" + msg);
+			System.out.println("server " + socketId+ " on port " + getPort() + ">" + msg);
 		}
 		catch(IOException ioException){
 			ioException.printStackTrace();
@@ -129,7 +138,7 @@ public class Provider implements Runnable{
 		try{
 			out.writeObject(o);
 			out.flush();
-			System.out.println("server " + socketId + ">" + o.toString());
+			System.out.println("server " + socketId+ " on port " + getPort() + ">" + o.toString());
 		}
 		catch(IOException ioException){
 			ioException.printStackTrace();
@@ -138,5 +147,44 @@ public class Provider implements Runnable{
 	
 	public int getPort(){
 		return providerSocket.getLocalPort();
+	}
+	
+	public int getNewPort() throws SQLException, IOException{
+		String results = null;	
+		conn = DriverManager.getConnection(url);	
+		Statement st = null;		
+		st = conn.createStatement();		
+		
+		results = ScriptRunner.runScriptWithResult(conn,new StringReader("select * from PORTLIST;"));		
+		
+		String temp =  results.split("\n")[2];
+		System.out.println("subcheck 5: " + temp.trim());
+		int newPort = Integer.parseInt(temp.trim());
+		System.out.println("subcheck 6 new port = " + newPort);
+		
+		System.out.println("subcheck 7");
+		results = ScriptRunner.runScriptWithOutResult(conn, new StringReader("delete from PORTLIST where PORT = " + newPort + ";"));		
+		System.out.println("subcheck 8: " + results);
+		
+		
+				
+		st.close();
+		
+		
+		conn.close();
+		
+		return newPort;
+	}
+	
+	public void returnPort(int port){
+		try {
+			ScriptRunner.runScriptWithResult(conn,new StringReader("INSERT into PORTLIST (PORT) VALUES (" + port +");"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }
