@@ -1,0 +1,10 @@
+package old.man.henderson.client;
+
+import java.io.Serializable;
+
+public class SerialWrapper implements Serializable {
+	public Object o;
+	public SerialWrapper(Object o){
+		this.o = o;
+	}
+}

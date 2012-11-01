@@ -22,7 +22,7 @@ public class ConnectionNegotiator{
 	static Connection conn = null;
 	static String url = "jdbc:derby:C:\\Apache\\DataBase;create=True"; //connection url, will be different on a different machine
 	static String initFileUrl = "C:\\Apache\\init.sql";
-	static String driver = "org.apache.derby.jdbc.EmbeddedDriver"; // derby drivers, this will be different if we use MySQL or somthing else
+	static String driver = "org.apache.derby.jdbc.EmbeddedDriver"; // derby drivers, this will be different if we use MySQL or something else
 	static int startPort = 5000;
 	static int endPort = 6000;
 	
@@ -38,40 +38,26 @@ public class ConnectionNegotiator{
 		long i = 0;
 		while(true){
 			try {
-				negotiatorSocket = new ServerSocket(2008, 10);			
+				negotiatorSocket = new ServerSocket(2008, 10);
 				
-				System.out.println("negotiator> Waiting for connection");
+				System.out.println("negotiator> Waiting for connection at: " + negotiatorSocket.getLocalPort());
 				connection = negotiatorSocket.accept();
 				System.out.println("negotiator> Connection received from " + connection.getInetAddress().getHostName());
 				
 				System.out.println("negotiator> Starting new provider interface");
 				
-				Thread temp = new Thread(new Provider(negotiatorSocket,connection,i++));
-				Thread.sleep(500L);
-				Thread.yield();
+				Thread temp = new Thread(new Provider2(negotiatorSocket,connection,i++));
 				temp.start();
 				Thread.yield();				
-				System.out.println("negotiator> closing socket");
-				negotiatorSocket.close();
+				
+				if(!negotiatorSocket.isClosed()){
+					System.out.println("negotiator> closing socket");
+					negotiatorSocket.close();
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
-		}
-	}
-	
-	void sendMessage(String msg)
-	{
-		try{
-			out.writeObject(msg);
-			out.flush();
-			System.out.println("server>" + msg);
-		}
-		catch(IOException ioException){
-			ioException.printStackTrace();
 		}
 	}
 	static void init() {
@@ -109,9 +95,5 @@ public class ConnectionNegotiator{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
-	static void cleanDatabase() {
-		
-	}
-	
+	}	
 }

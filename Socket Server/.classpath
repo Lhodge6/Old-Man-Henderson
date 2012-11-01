@@ -5,5 +5,6 @@
 	<classpathentry kind="lib" path="C:/Users/Leon/Old-Man-Henderson/Old-Man-Henderson/Socket Server/lib/derby.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Leon/Old-Man-Henderson/Old-Man-Henderson/Socket Server/lib/derbyclient.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Leon/Old-Man-Henderson/Old-Man-Henderson/Socket Server/lib/mysql-connector-java-5.1.22-bin.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Leon/Old-Man-Henderson/junit-4.11-beta-1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
